@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Routine</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c27;
+    --border: #2a2a3a;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --accent-am: #f0c060;
+    --accent-pm: #8080f0;
+    --check-am: #f0c060;
+    --check-pm: #8080f0;
+    --done: #3a3a4a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 16px);
+    padding-top: max(env(safe-area-inset-top), 20px);
+  }
+
+  .app {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+  }
+
+  .header {
+    margin-bottom: 32px;
+  }
+
+  .date-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 36px;
+    color: var(--text);
+    line-height: 1;
+    font-style: italic;
+  }
+
+  .section {
+    margin-bottom: 28px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .section-label.am { color: var(--accent-am); }
+  .section-label.pm { color: var(--accent-pm); }
+
+  .progress {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    transition: opacity 0.2s, background 0.2s;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .task-item.done {
+    opacity: 0.4;
+    background: var(--bg);
+  }
+
+  .task-item:active {
+    transform: scale(0.98);
+  }
+
+  .checkbox {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+
+  .task-item.am-task.done .checkbox {
+    background: var(--accent-am);
+    border-color: var(--accent-am);
+  }
+
+  .task-item.pm-task.done .checkbox {
+    background: var(--accent-pm);
+    border-color: var(--accent-pm);
+  }
+
+  .checkbox svg {
+    display: none;
+    width: 12px;
+    height: 12px;
+  }
+
+  .task-item.done .checkbox svg {
+    display: block;
+  }
+
+  .task-text {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--text);
+    flex: 1;
+    line-height: 1.3;
+  }
+
+  .task-item.done .task-text {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    display: none;
+  }
+
+  .editing .delete-btn { display: block; }
+  .editing .task-item:hover .delete-btn,
+  .editing .task-item .delete-btn { opacity: 1; }
+
+  /* Add task row */
+  .add-row {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-radius: 10px;
+    border: 1px dashed var(--border);
+    margin-top: 6px;
+  }
+
+  .editing .add-row { display: flex; }
+
+  .add-input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 300;
+    outline: none;
+  }
+
+  .add-input::placeholder { color: var(--muted); }
+
+  .add-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    padding: 0 4px;
+  }
+
+  /* Footer buttons */
+  .footer {
+    margin-top: 32px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn:active { background: var(--surface2); }
+
+  .btn.primary {
+    background: var(--surface2);
+    border-color: var(--accent-am);
+    color: var(--accent-am);
+  }
+
+  .reset-note {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 16px;
+    letter-spacing: 0.05em;
+  }
+
+  .drag-handle {
+    color: var(--muted);
+    cursor: grab;
+    font-size: 14px;
+    display: none;
+    padding: 0 2px;
+  }
+  .editing .drag-handle { display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="date-label" id="dateLabel"></div>
+    <div class="title">Routine</div>
+  </div>
+
+  <div class="section" id="amSection">
+    <div class="section-header">
+      <span class="section-label am">☀ Morning</span>
+      <span class="progress" id="amProgress"></span>
+    </div>
+    <div class="task-list" id="amList"></div>
+    <div class="add-row" id="amAddRow">
+      <input class="add-input" id="amInput" placeholder="Add task…" />
+      <button class="add-btn" onclick="addTask('am')">+</button>
+    </div>
+  </div>
+
+  <div class="section" id="pmSection">
+    <div class="section-header">
+      <span class="section-label pm">☾ Evening</span>
+      <span class="progress" id="pmProgress"></span>
+    </div>
+    <div class="task-list" id="pmList"></div>
+    <div class="add-row" id="pmAddRow">
+      <input class="add-input" id="pmInput" placeholder="Add task…" />
+      <button class="add-btn" onclick="addTask('pm')">+</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <button class="btn" id="editBtn" onclick="toggleEdit()">Edit Tasks</button>
+    <button class="btn" id="resetBtn" onclick="resetAll()" style="display:none">Reset Day</button>
+  </div>
+  <div class="reset-note">Tasks reset automatically each morning at midnight</div>
+</div>
+
+<script>
+const DEFAULT = {
+  am: ['Wake up & stretch', 'Make bed', 'Brush teeth', 'Take vitamins', 'Drink water'],
+  pm: ['Wind down', 'Skincare', 'Floss & brush teeth', 'Prep for tomorrow', 'Lights out']
+};
+
+let state = { am: [], pm: [], checked: { am: [], pm: [] }, lastDate: '' };
+
+function todayStr() {
+  return new Date().toDateString();
+}
+
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('routine_v1') || 'null');
+    if (saved) {
+      state = saved;
+      // Reset checks if it's a new day
+      if (state.lastDate !== todayStr()) {
+        state.checked = { am: [], pm: [] };
+        state.lastDate = todayStr();
+        save();
+      }
+    } else {
+      state = { am: [...DEFAULT.am], pm: [...DEFAULT.pm], checked: { am: [], pm: [] }, lastDate: todayStr() };
+      save();
+    }
+  } catch(e) {
+    state = { am: [...DEFAULT.am], pm: [...DEFAULT.pm], checked: { am: [], pm: [] }, lastDate: todayStr() };
+  }
+}
+
+function save() {
+  localStorage.setItem('routine_v1', JSON.stringify(state));
+}
+
+function render() {
+  // Date label
+  const now = new Date();
+  document.getElementById('dateLabel').textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  renderList('am');
+  renderList('pm');
+}
+
+function renderList(period) {
+  const list = document.getElementById(period + 'List');
+  const tasks = state[period];
+  const checked = state.checked[period];
+  const isEditing = document.body.classList.contains('editing');
+
+  list.innerHTML = '';
+  tasks.forEach((task, i) => {
+    const done = checked.includes(i);
+    const item = document.createElement('div');
+    item.className = `task-item ${period}-task${done ? ' done' : ''}`;
+    item.innerHTML = `
+      <div class="checkbox">
+        <svg viewBox="0 0 12 12" fill="none" stroke="${period === 'am' ? '#0a0a0f' : '#0a0a0f'}" stroke-width="2" stroke-linecap="round">
+          <polyline points="2,6 5,9 10,3"/>
+        </svg>
+      </div>
+      <span class="task-text">${escHtml(task)}</span>
+      <button class="delete-btn" onclick="deleteTask('${period}', ${i})" title="Remove">✕</button>
+    `;
+    if (!isEditing) {
+      item.addEventListener('click', () => toggleCheck(period, i));
+    }
+    list.appendChild(item);
+  });
+
+  // Progress
+  const total = tasks.length;
+  const done = checked.length;
+  document.getElementById(period + 'Progress').textContent = total > 0 ? `${done}/${total}` : '';
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function toggleCheck(period, i) {
+  const arr = state.checked[period];
+  const idx = arr.indexOf(i);
+  if (idx === -1) arr.push(i);
+  else arr.splice(idx, 1);
+  save();
+  renderList(period);
+}
+
+function toggleEdit() {
+  const editing = document.body.classList.toggle('editing');
+  document.getElementById('editBtn').textContent = editing ? 'Done' : 'Edit Tasks';
+  document.getElementById('resetBtn').style.display = editing ? 'inline-block' : 'none';
+  renderList('am');
+  renderList('pm');
+}
+
+function addTask(period) {
+  const input = document.getElementById(period + 'Input');
+  const val = input.value.trim();
+  if (!val) return;
+  state[period].push(val);
+  input.value = '';
+  save();
+  renderList(period);
+}
+
+function deleteTask(period, i) {
+  state[period].splice(i, 1);
+  // Fix checked indices
+  state.checked[period] = state.checked[period]
+    .filter(c => c !== i)
+    .map(c => c > i ? c - 1 : c);
+  save();
+  renderList(period);
+}
+
+function resetAll() {
+  if (confirm('Reset all checks for today?')) {
+    state.checked = { am: [], pm: [] };
+    save();
+    renderList('am');
+    renderList('pm');
+  }
+}
+
+// Enter key on inputs
+document.addEventListener('DOMContentLoaded', () => {
+  ['am','pm'].forEach(p => {
+    document.getElementById(p + 'Input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addTask(p);
+    });
+  });
+});
+
+// Auto-reset at midnight
+function scheduleReset() {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  setTimeout(() => {
+    state.checked = { am: [], pm: [] };
+    state.lastDate = todayStr();
+    save();
+    render();
+    scheduleReset();
+  }, midnight - now);
+}
+
+load();
+render();
+scheduleReset();
+</script>
+</body>
+</html>
